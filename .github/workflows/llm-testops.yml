@@ -1,0 +1,144 @@
+name: llm-testops
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  static_and_unit_checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build frontend
+        run: bun run build:frontend
+      - name: Run deterministic unit tests
+        run: bun run test:unit
+
+  llm_regression_tests:
+    needs: static_and_unit_checks
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify OpenRouter secret
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY is required for the regression suite."
+            exit 1
+          fi
+      - name: Run Promptfoo regression suite
+        run: bun run test:eval:regression
+      - name: Upload regression report
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-regression
+          path: promptfoo-results/regression.json
+
+  safety_and_robustness_checks:
+    needs: llm_regression_tests
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify OpenRouter secret
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY is required for the safety suite."
+            exit 1
+          fi
+      - name: Run Promptfoo safety suite
+        run: bun run test:eval:safety
+      - name: Upload safety report
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-safety
+          path: promptfoo-results/safety.json
+
+  bias_and_fairness_checks:
+    needs: safety_and_robustness_checks
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify OpenRouter secret
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY is required for the bias suite."
+            exit 1
+          fi
+      - name: Run Promptfoo bias suite
+        run: bun run test:eval:bias
+      - name: Upload bias report
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-bias
+          path: promptfoo-results/bias.json
+
+  deploy_to_staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - static_and_unit_checks
+      - llm_regression_tests
+      - safety_and_robustness_checks
+      - bias_and_fairness_checks
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simulate staging deployment
+        run: echo "Deploying the course assistant to staging."
+
+  canary_deployment:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: deploy_to_staging
+    runs-on: ubuntu-latest
+    environment: canary
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Simulate canary release
+        run: echo "Rolling out a canary deployment."
+      - name: Check canary monitoring gates
+        run: node scripts/check-canary-metrics.mjs
+
+  deploy_to_production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: canary_deployment
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simulate production deployment
+        run: echo "Promoting the canary release to production."
