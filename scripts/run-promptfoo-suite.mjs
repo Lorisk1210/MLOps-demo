@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
-process.loadEnvFile?.('.env');
+if (fs.existsSync('.env')) {
+  process.loadEnvFile?.('.env');
+}
 
 const [suiteName, configPath, passThresholdArg, maxCriticalFailuresArg] =
   process.argv.slice(2);

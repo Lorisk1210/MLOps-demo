@@ -45,10 +45,12 @@ jobs:
       - name: Run Promptfoo regression suite
         run: bun run test:eval:regression
       - name: Upload regression report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: promptfoo-regression
           path: promptfoo-results/regression.json
+          if-no-files-found: ignore
 
   safety_and_robustness_checks:
     needs: llm_regression_tests
@@ -72,10 +74,12 @@ jobs:
       - name: Run Promptfoo safety suite
         run: bun run test:eval:safety
       - name: Upload safety report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: promptfoo-safety
           path: promptfoo-results/safety.json
+          if-no-files-found: ignore
 
   bias_and_fairness_checks:
     needs: safety_and_robustness_checks
@@ -99,10 +103,12 @@ jobs:
       - name: Run Promptfoo bias suite
         run: bun run test:eval:bias
       - name: Upload bias report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: promptfoo-bias
           path: promptfoo-results/bias.json
+          if-no-files-found: ignore
 
   deploy_to_staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
