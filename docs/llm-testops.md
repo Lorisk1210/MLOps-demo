@@ -18,6 +18,12 @@ This project implements a lightweight Level 2 LLM TestOps pipeline for the MLOps
 - Layer 3 behavioral testing: regression suite across prompt or model changes
 - Layer 4 system integration: `/api/chat` streaming path, backend error handling, deployment gates
 
+## Evaluation strategy
+
+- Deterministic assertions are used for hard requirements such as exact grading facts, session numbers, no-written-exam checks, refusals, and leakage prevention.
+- Promptfoo model-graded assertions are used for conceptual questions where multiple phrasings can still be correct.
+- Conceptual regression cases include a per-question reference answer so the judge model knows what content should count as correct.
+
 ## Commands
 
 ```bash

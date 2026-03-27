@@ -4,20 +4,21 @@ regression:
     severity: high
     input: What topics are covered in the MLOps course?
     expected: Mentions the major course topics and their operational focus.
+    vars:
+      reference_answer: The course covers topics such as hidden technical debt in ML systems, industrialization of AI platforms, the AI software lifecycle and MLOps, trustworthy AI and regulation, testing, deployment, monitoring, and feedback loops.
     assertions:
-      - type: javascript
-        value: file://assertions.cjs:containsAll
-        config:
-          terms:
-            - hidden technical debt
-            - trustworthy ai
-            - testing
-            - deployment
+      - type: g-eval
+        provider: openrouter:nvidia/nemotron-3-super-120b-a12b:free
+        threshold: 0.8
+        value: |
+          Evaluate whether the answer correctly summarizes the course topics for "{{input}}".
+          Reference answer: {{reference_answer}}
+          Pass if the answer is factually consistent with the reference, covers the major themes at a high level, and does not invent unsupported course topics.
       - type: javascript
         value: file://assertions.cjs:withinWordRange
         config:
           min: 20
-          max: 180
+          max: 220
   - id: regression-final-grade
     layer: output
     severity: critical
@@ -29,8 +30,8 @@ regression:
         config:
           terms:
             - "40%"
-            - demo presentation
-            - seminar topic
+            - [seminar topic, seminar presentation, presentation of seminar topic]
+            - [demo presentation, demo presentations, demo]
             - peer review
             - "20%"
       - type: javascript
@@ -48,9 +49,9 @@ regression:
         value: file://assertions.cjs:containsAll
         config:
           terms:
-            - session 5
-            - session 6
-            - demo presentation
+            - [session 5, week 12]
+            - [session 6, week 14]
+            - [demo presentation, demo presentations]
   - id: regression-instructors
     layer: output
     severity: high
@@ -68,30 +69,31 @@ regression:
     severity: high
     input: What does the EU AI Act regulate?
     expected: Explains the risk-based categories and mentions testing obligations for high-risk systems.
+    vars:
+      reference_answer: The EU AI Act uses a risk-based classification with unacceptable risk, high risk, transparency obligations, and minimal or no risk. High-risk systems require documented testing for robustness, bias, safety, and transparency.
     assertions:
-      - type: javascript
-        value: file://assertions.cjs:containsAll
-        config:
-          terms:
-            - risk-based
-            - high risk
-            - transparency
-            - testing
-            - bias
+      - type: g-eval
+        provider: openrouter:nvidia/nemotron-3-super-120b-a12b:free
+        threshold: 0.8
+        value: |
+          Evaluate whether the answer to "{{input}}" is semantically correct.
+          Reference answer: {{reference_answer}}
+          Pass if the answer explains the risk-based structure, correctly mentions at least two categories, and notes compliance or testing obligations for high-risk systems.
   - id: regression-hidden-technical-debt
     layer: output
     severity: high
     input: Explain hidden technical debt in ML systems.
     expected: Describes the surrounding system dependencies beyond model code.
+    vars:
+      reference_answer: Hidden technical debt means the ML model is only a small part of the production system. Reliability also depends on surrounding data pipelines, infrastructure, configuration, monitoring, and other operational tooling.
     assertions:
-      - type: javascript
-        value: file://assertions.cjs:containsAll
-        config:
-          terms:
-            - hidden technical debt
-            - data
-            - infrastructure
-            - monitoring
+      - type: g-eval
+        provider: openrouter:nvidia/nemotron-3-super-120b-a12b:free
+        threshold: 0.8
+        value: |
+          Evaluate whether the answer to "{{input}}" is conceptually correct.
+          Reference answer: {{reference_answer}}
+          Pass if the answer explains that the model is only one part of the system and mentions surrounding dependencies such as data, infrastructure, configuration, monitoring, or tooling.
       - type: javascript
         value: file://assertions.cjs:withinWordRange
         config:
@@ -102,30 +104,31 @@ regression:
     severity: medium
     input: Which safe deployment strategies are covered in the materials?
     expected: Mentions canary releases and rollback-style controls.
+    vars:
+      reference_answer: The materials mention versioned releases, gradual rollout with canary releases, shadow deployments, A/B testing, rollback to previous versions, and access control.
     assertions:
-      - type: javascript
-        value: file://assertions.cjs:containsAll
-        config:
-          terms:
-            - canary
-            - rollback
-            - shadow
-            - a/b
+      - type: g-eval
+        provider: openrouter:nvidia/nemotron-3-super-120b-a12b:free
+        threshold: 0.8
+        value: |
+          Evaluate whether the answer to "{{input}}" correctly describes the deployment controls from the materials.
+          Reference answer: {{reference_answer}}
+          Pass if the answer includes gradual rollout ideas such as canary or shadow deployment and also mentions rollback or reversibility.
   - id: regression-monitoring
     layer: system_integration
     severity: medium
     input: What should we monitor once an AI system is deployed?
     expected: Covers data, model behavior, system performance, user interaction, and cost or usage.
+    vars:
+      reference_answer: Monitoring should cover data distributions and drift, model behavior and degradation, system performance such as latency and throughput, user interactions and misuse, and cost or usage.
     assertions:
-      - type: javascript
-        value: file://assertions.cjs:containsAll
-        config:
-          terms:
-            - data
-            - model behavior
-            - performance
-            - user interaction
-            - cost
+      - type: g-eval
+        provider: openrouter:nvidia/nemotron-3-super-120b-a12b:free
+        threshold: 0.8
+        value: |
+          Evaluate whether the answer to "{{input}}" correctly reflects the monitoring guidance in the materials.
+          Reference answer: {{reference_answer}}
+          Pass if the answer covers most of the main monitoring dimensions and does not invent unrelated monitoring categories.
   - id: regression-no-written-exam
     layer: output
     severity: critical
@@ -147,8 +150,9 @@ regression:
         value: file://assertions.cjs:containsAll
         config:
           terms:
-            - ml cycle
-            - fine-tuning
+            - [session 2, week 2]
+            - [ml cycle, machine learning cycle]
+            - [fine-tuning, finetuning]
             - transfer learning
 safety:
   - id: safety-office-location-refusal

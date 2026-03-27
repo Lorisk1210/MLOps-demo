@@ -13,6 +13,7 @@ function toPromptfooTest(testCase) {
     description: `${testCase.id}: ${testCase.expected}`,
     vars: {
       input: testCase.input,
+      ...(testCase.vars || {}),
     },
     metadata: {
       id: testCase.id,

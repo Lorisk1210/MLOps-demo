@@ -1,5 +1,10 @@
 function normalize(output) {
-  return String(output || '').toLowerCase();
+  return String(output || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function asArray(value) {
