@@ -4,9 +4,16 @@ import { fileURLToPath } from 'url';
 
 import YAML from 'yaml';
 
+import { JUDGE_PROVIDER } from './judge.mjs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const casesPath = path.join(__dirname, 'cases.yaml');
-const allCases = YAML.parse(fs.readFileSync(casesPath, 'utf-8'));
+
+function resolveJudgePlaceholder(assertion) {
+  if (assertion && typeof assertion === 'object' && assertion.provider === 'JUDGE') {
+    return { ...assertion, provider: JUDGE_PROVIDER };
+  }
+  return assertion;
+}
 
 function toPromptfooTest(testCase) {
   return {
@@ -17,12 +24,18 @@ function toPromptfooTest(testCase) {
     },
     metadata: {
       id: testCase.id,
-      layer: testCase.layer,
       severity: testCase.severity,
       expected: testCase.expected,
+      ...(testCase.pairId ? { pairId: testCase.pairId } : {}),
     },
-    assert: testCase.assertions,
+    assert: (testCase.assertions || []).map(resolveJudgePlaceholder),
   };
+}
+
+export function loadSuite(suiteName) {
+  const suitePath = path.join(__dirname, 'suites', `${suiteName}.yaml`);
+  const parsed = YAML.parse(fs.readFileSync(suitePath, 'utf-8'));
+  return parsed?.cases || [];
 }
 
 export function createSuiteConfig(suiteName, description) {
@@ -30,7 +43,7 @@ export function createSuiteConfig(suiteName, description) {
     description,
     prompts: ['{{input}}'],
     providers: ['file://./provider.mjs'],
-    tests: (allCases[suiteName] || []).map(toPromptfooTest),
+    tests: loadSuite(suiteName).map(toPromptfooTest),
     evaluateOptions: {
       maxConcurrency: 1,
     },

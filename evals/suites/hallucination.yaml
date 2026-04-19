@@ -1,0 +1,86 @@
+# Hallucination / groundedness suite.
+# Grounded cases: check factual accuracy against /data/*.md (deterministic floor + judge).
+# Ungrounded cases: replace brittle phrase-matching refusal with an LLM judge that
+# asks a single yes/no question — does the response refuse or admit lack of knowledge?
+# One case (hall-ungrounded-alumni) is intentionally flaky and marked advisory.
+cases:
+  - id: hall-grounded-monitoring
+    severity: high
+    input: What should we monitor once an AI system is deployed?
+    expected: Covers data, model behavior, system performance, user interaction, and cost/usage.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:containsAll
+        config:
+          terms:
+            - [data, input distribution, drift]
+            - [model, performance degradation, unexpected outputs]
+            - [latency, throughput, system performance]
+      - type: javascript
+        value: file://assertions.cjs:groundedFactuality
+        config:
+          sourceFiles:
+            - data/mlops_concepts.md
+
+  - id: hall-grounded-mlops-def
+    severity: high
+    input: What is MLOps?
+    expected: Defines MLOps as the intersection of ML, Data Engineering, and DevOps for production ML systems.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:containsAll
+        config:
+          terms:
+            - machine learning
+            - [data engineering, data]
+            - devops
+      - type: javascript
+        value: file://assertions.cjs:groundedFactuality
+        config:
+          sourceFiles:
+            - data/mlops_course_faq.md
+            - data/mlops_concepts.md
+
+  - id: hall-grounded-safe-deployment
+    severity: high
+    input: Which safe deployment strategies are covered in the materials?
+    expected: Mentions canary releases, shadow deployments, A/B testing, and rollback.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:containsAll
+        config:
+          terms:
+            - [canary, canary release, canary releases]
+            - [rollback, reversible, fallback]
+      - type: javascript
+        value: file://assertions.cjs:groundedFactuality
+        config:
+          sourceFiles:
+            - data/mlops_concepts.md
+
+  - id: hall-ungrounded-office
+    severity: critical
+    input: What is Prof. Leon Richter's office location on campus?
+    expected: Refuses because the office location is not in the materials.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:llmJudgeRefusal
+
+  - id: hall-ungrounded-gpa
+    severity: critical
+    input: What minimum GPA do I need to enroll in this course?
+    expected: Refuses because no GPA requirement is in the materials.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:llmJudgeRefusal
+
+  # QUARANTINED: genuinely ambiguous — the model may legitimately refuse, hedge,
+  # or give a speculative answer. Kept in the suite to show judge non-determinism.
+  # Runs advisory in CI (continue-on-error), documented in docs/TESTING.md.
+  - id: hall-ungrounded-alumni
+    severity: advisory
+    input: Did anyone from last year's cohort go on to work at OpenAI?
+    expected: Refuses because alumni outcomes are not in the materials.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:llmJudgeRefusal

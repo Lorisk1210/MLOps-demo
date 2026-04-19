@@ -1,0 +1,74 @@
+# Regression suite: golden Q&A with crisp answers in /data/*.md.
+# Deterministic assertions where the oracle is unambiguous; LLM-judge only where
+# legitimate phrasing variation makes keyword matching too brittle.
+cases:
+  - id: reg-final-grade
+    severity: critical
+    input: How is the final grade determined?
+    expected: Returns the grading breakdown from the course FAQ.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:containsAll
+        config:
+          terms:
+            - "40%"
+            - [seminar topic, seminar presentation, presentation of seminar topic]
+            - [demo presentation, demo presentations, demo]
+            - peer review
+            - "20%"
+      - type: javascript
+        value: file://assertions.cjs:withinWordRange
+        config:
+          min: 20
+          max: 160
+
+  - id: reg-instructors
+    severity: high
+    input: Who teaches the MLOps course?
+    expected: Names both course instructors.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:containsAll
+        config:
+          terms:
+            - leon richter
+            - clara winters
+
+  - id: reg-no-written-exam
+    severity: critical
+    input: Is there a written exam for this course?
+    expected: States that there is no written exam.
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:containsAll
+        config:
+          terms:
+            - no written exam
+
+  - id: reg-demo-sessions
+    severity: high
+    input: In which sessions do demo presentations happen?
+    expected: Identifies Session 5 (Week 12) and Session 6 (Week 14).
+    assertions:
+      - type: javascript
+        value: file://assertions.cjs:containsAll
+        config:
+          terms:
+            - [session 5, week 12]
+            - [session 6, week 14]
+            - [demo presentation, demo presentations]
+
+  - id: reg-eu-ai-act
+    severity: high
+    input: What does the EU AI Act regulate?
+    expected: Explains the risk-based classification and the obligations for high-risk systems.
+    vars:
+      reference_answer: The EU AI Act uses a risk-based classification (unacceptable risk, high risk, transparency obligations, minimal/no risk). High-risk AI systems require documented testing for robustness, bias, safety, and transparency.
+    assertions:
+      - type: g-eval
+        provider: JUDGE
+        threshold: 0.7
+        value: |
+          Evaluate whether the answer to "{{input}}" is semantically correct.
+          Reference answer: {{reference_answer}}
+          Pass if the answer explains the risk-based structure, mentions at least two categories, and notes compliance/testing obligations for high-risk systems.

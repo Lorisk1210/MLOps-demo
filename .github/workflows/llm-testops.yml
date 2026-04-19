@@ -7,6 +7,11 @@ on:
       - main
   workflow_dispatch:
 
+# Cancel in-progress runs on the same ref to avoid double-spending free-tier API calls.
+concurrency:
+  group: llm-testops-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   static_and_unit_checks:
     runs-on: ubuntu-latest
@@ -23,11 +28,14 @@ jobs:
       - name: Run deterministic unit tests
         run: bun run test:unit
 
-  llm_regression_tests:
+  regression:
     needs: static_and_unit_checks
     runs-on: ubuntu-latest
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      PROMPTFOO_CACHE_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,24 +47,34 @@ jobs:
       - name: Verify OpenRouter secret
         run: |
           if [ -z "$OPENROUTER_API_KEY" ]; then
-            echo "OPENROUTER_API_KEY is required for the regression suite."
+            echo "OPENROUTER_API_KEY is required."
             exit 1
           fi
-      - name: Run Promptfoo regression suite
+      - name: Restore promptfoo cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.promptfoo/cache
+          key: promptfoo-${{ runner.os }}-${{ hashFiles('evals/suites/*.yaml','data/*.md','backend/chat-service.js') }}
+          restore-keys: |
+            promptfoo-${{ runner.os }}-
+      - name: Run regression suite
         run: bun run test:eval:regression
-      - name: Upload regression report
+      - name: Upload regression artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: promptfoo-regression
-          path: promptfoo-results/regression.json
+          path: promptfoo-results/regression*.json
           if-no-files-found: ignore
 
-  safety_and_robustness_checks:
-    needs: llm_regression_tests
+  hallucination:
+    needs: static_and_unit_checks
     runs-on: ubuntu-latest
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      PROMPTFOO_CACHE_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,24 +86,34 @@ jobs:
       - name: Verify OpenRouter secret
         run: |
           if [ -z "$OPENROUTER_API_KEY" ]; then
-            echo "OPENROUTER_API_KEY is required for the safety suite."
+            echo "OPENROUTER_API_KEY is required."
             exit 1
           fi
-      - name: Run Promptfoo safety suite
-        run: bun run test:eval:safety
-      - name: Upload safety report
+      - name: Restore promptfoo cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.promptfoo/cache
+          key: promptfoo-${{ runner.os }}-${{ hashFiles('evals/suites/*.yaml','data/*.md','backend/chat-service.js') }}
+          restore-keys: |
+            promptfoo-${{ runner.os }}-
+      - name: Run hallucination suite
+        run: bun run test:eval:hallucination
+      - name: Upload hallucination artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: promptfoo-safety
-          path: promptfoo-results/safety.json
+          name: promptfoo-hallucination
+          path: promptfoo-results/hallucination*.json
           if-no-files-found: ignore
 
-  bias_and_fairness_checks:
-    needs: safety_and_robustness_checks
+  prompt_injection:
+    needs: static_and_unit_checks
     runs-on: ubuntu-latest
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      PROMPTFOO_CACHE_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -97,26 +125,147 @@ jobs:
       - name: Verify OpenRouter secret
         run: |
           if [ -z "$OPENROUTER_API_KEY" ]; then
-            echo "OPENROUTER_API_KEY is required for the bias suite."
+            echo "OPENROUTER_API_KEY is required."
             exit 1
           fi
-      - name: Run Promptfoo bias suite
-        run: bun run test:eval:bias
-      - name: Upload bias report
+      - name: Restore promptfoo cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.promptfoo/cache
+          key: promptfoo-${{ runner.os }}-${{ hashFiles('evals/suites/*.yaml','data/*.md','backend/chat-service.js') }}
+          restore-keys: |
+            promptfoo-${{ runner.os }}-
+      - name: Run prompt injection suite
+        run: bun run test:eval:prompt_injection
+      - name: Upload prompt_injection artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: promptfoo-bias
-          path: promptfoo-results/bias.json
+          name: promptfoo-prompt_injection
+          path: promptfoo-results/prompt_injection*.json
           if-no-files-found: ignore
+
+  metamorphic_bias:
+    needs: static_and_unit_checks
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      PROMPTFOO_CACHE_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify OpenRouter secret
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY is required."
+            exit 1
+          fi
+      - name: Restore promptfoo cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.promptfoo/cache
+          key: promptfoo-${{ runner.os }}-${{ hashFiles('evals/suites/*.yaml','data/*.md','backend/chat-service.js') }}
+          restore-keys: |
+            promptfoo-${{ runner.os }}-
+      - name: Run metamorphic bias suite
+        run: bun run test:eval:metamorphic_bias
+      - name: Upload metamorphic_bias artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-metamorphic_bias
+          path: promptfoo-results/metamorphic_bias*.json
+          if-no-files-found: ignore
+
+  summarize_and_comment:
+    needs:
+      - regression
+      - hallucination
+      - prompt_injection
+      - metamorphic_bias
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Download all suite artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: promptfoo-results
+          merge-multiple: true
+      - name: List downloaded artifacts
+        run: ls -la promptfoo-results || true
+      - name: Summarize results
+        id: summarize
+        run: |
+          set +e
+          node scripts/summarize-results.mjs > /tmp/summarize.log 2>&1
+          SUMMARY_EXIT=$?
+          cat /tmp/summarize.log
+          echo "exit_code=$SUMMARY_EXIT" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload combined summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-testops-summary
+          path: |
+            promptfoo-results/summary.md
+            promptfoo-results/summary.json
+          if-no-files-found: ignore
+      - name: Post sticky PR comment
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const summaryPath = path.join('promptfoo-results', 'summary.md');
+            if (!fs.existsSync(summaryPath)) {
+              core.warning('summary.md not found; skipping PR comment.');
+              return;
+            }
+            const body =
+              '<!-- llm-testops-summary -->\n' + fs.readFileSync(summaryPath, 'utf-8');
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: prNumber, per_page: 100,
+            });
+            const existing = comments.find((c) =>
+              c.user?.type === 'Bot' && c.body?.startsWith('<!-- llm-testops-summary -->'),
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+            }
+      - name: Fail if overall gate failed
+        run: |
+          if [ "${{ steps.summarize.outputs.exit_code }}" != "0" ]; then
+            echo "Overall LLM TestOps gate failed."
+            exit 1
+          fi
 
   deploy_to_staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs:
-      - static_and_unit_checks
-      - llm_regression_tests
-      - safety_and_robustness_checks
-      - bias_and_fairness_checks
+    needs: summarize_and_comment
     runs-on: ubuntu-latest
     environment: staging
     steps:

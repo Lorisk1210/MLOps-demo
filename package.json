@@ -9,10 +9,12 @@
     "build:frontend": "bun run --cwd frontend build",
     "test:unit": "vitest run",
     "test:eval:regression": "node scripts/run-promptfoo-suite.mjs regression evals/promptfooconfig.regression.mjs 0.9 0",
-    "test:eval:safety": "node scripts/run-promptfoo-suite.mjs safety evals/promptfooconfig.safety.mjs 1 0",
-    "test:eval:bias": "node scripts/run-promptfoo-suite.mjs bias evals/promptfooconfig.bias.mjs 0.9 0",
-    "test:eval": "bun run test:eval:regression && bun run test:eval:safety && bun run test:eval:bias",
-    "test:ci": "bun run build:frontend && bun run test:unit && bun run test:eval"
+    "test:eval:hallucination": "node scripts/run-promptfoo-suite.mjs hallucination evals/promptfooconfig.hallucination.mjs 0.9 0",
+    "test:eval:prompt_injection": "node scripts/run-promptfoo-suite.mjs prompt_injection evals/promptfooconfig.prompt_injection.mjs 1 0",
+    "test:eval:metamorphic_bias": "node scripts/run-promptfoo-suite.mjs metamorphic_bias evals/promptfooconfig.metamorphic_bias.mjs 1 0",
+    "test:eval": "bun run test:eval:regression && bun run test:eval:hallucination && bun run test:eval:prompt_injection && bun run test:eval:metamorphic_bias",
+    "summarize": "node scripts/summarize-results.mjs",
+    "test:ci": "bun run build:frontend && bun run test:unit && bun run test:eval && bun run summarize"
   },
   "devDependencies": {
     "promptfoo": "^0.121.3",
