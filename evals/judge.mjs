@@ -18,7 +18,13 @@ export { JUDGE_MODEL, SUBJECT_MODEL };
 
 export const JUDGE_PROVIDER = `openrouter:${JUDGE_MODEL}`;
 
-export async function askJudgeYesNo(question) {
+const MAX_ATTEMPTS = 3;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callJudgeOnce(question) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error('OPENROUTER_API_KEY is required for the judge.');
@@ -45,16 +51,29 @@ export async function askJudgeYesNo(question) {
     }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Judge call failed: ${response.status} ${body}`);
-  }
+  return response;
+}
 
-  const data = await response.json();
-  const raw = String(data.choices?.[0]?.message?.content ?? '').trim();
-  const first = raw.toUpperCase().match(/\b(YES|NO)\b/);
-  if (!first) {
-    return { verdict: null, raw };
+export async function askJudgeYesNo(question) {
+  let lastError;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    const response = await callJudgeOnce(question);
+    if (response.ok) {
+      const data = await response.json();
+      const raw = String(data.choices?.[0]?.message?.content ?? '').trim();
+      const first = raw.toUpperCase().match(/\b(YES|NO)\b/);
+      return first ? { verdict: first[1], raw } : { verdict: null, raw };
+    }
+    const body = await response.text();
+    lastError = new Error(`Judge call failed: ${response.status} ${body}`);
+    // Retry on transient rate-limit / upstream errors with exponential backoff.
+    if (response.status === 429 || response.status >= 500) {
+      if (attempt < MAX_ATTEMPTS) {
+        await sleep(1000 * Math.pow(2, attempt - 1));
+        continue;
+      }
+    }
+    throw lastError;
   }
-  return { verdict: first[1], raw };
+  throw lastError;
 }
