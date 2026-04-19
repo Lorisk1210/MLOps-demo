@@ -34,7 +34,7 @@ jobs:
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
-      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      OPENROUTER_MODEL2: openrouter/elephant-alpha
       PROMPTFOO_CACHE_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
-      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      OPENROUTER_MODEL2: openrouter/elephant-alpha
       PROMPTFOO_CACHE_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
@@ -112,7 +112,7 @@ jobs:
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
-      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      OPENROUTER_MODEL2: openrouter/elephant-alpha
       PROMPTFOO_CACHE_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
@@ -151,7 +151,7 @@ jobs:
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
-      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      OPENROUTER_MODEL2: openrouter/elephant-alpha
       PROMPTFOO_CACHE_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
@@ -195,7 +195,7 @@ jobs:
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
-      OPENROUTER_MODEL2: google/gemma-4-26b-a4b-it:free
+      OPENROUTER_MODEL2: openrouter/elephant-alpha
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
