@@ -264,7 +264,7 @@ jobs:
           fi
 
   deploy_to_staging:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: summarize_and_comment
     runs-on: ubuntu-latest
     environment: staging
@@ -274,7 +274,7 @@ jobs:
         run: echo "Deploying the course assistant to staging."
 
   canary_deployment:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: deploy_to_staging
     runs-on: ubuntu-latest
     environment: canary
@@ -289,7 +289,7 @@ jobs:
         run: node scripts/check-canary-metrics.mjs
 
   deploy_to_production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: canary_deployment
     runs-on: ubuntu-latest
     environment: production
